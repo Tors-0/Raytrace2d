@@ -1,3 +1,6 @@
+import math
+from math import degrees
+
 from PIL import Image
 
 scenePath = "scene.png"
@@ -16,10 +19,16 @@ try:
 except IOError:
     exit(1)
 
-cameraPt = [48, 75]
-gravityObjs = [[159, 65, 5], [132,  904, 0.1]]
+cameraPt = (48, 75)
+# x pos, y pos, mass
+gravityObjs = [(159, 65, 1.89E+27), (132,  904, 1000)]
 sceneSize = scene.size
-vecField = [[(0,0)]]
-for x in range(sceneSize[0]):
-    for y in range(sceneSize[1]):
-        pass
+
+# ~~find point closest to black hole~~
+# step forward, calc deflection, repeat
+# kill path if within 2.8m of black hole or hit edge
+
+angleResolution = 45
+for angleStep in range(angleResolution):
+    angle = 2 * math.pi / angleResolution * angleStep
+    # while (path not dead): move one step along angle, calc deflection & update angle, record scene state at current pos
