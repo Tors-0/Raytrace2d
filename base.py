@@ -1,7 +1,7 @@
 import math
 from math import degrees
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 scenePath = "scene.png"
 renderPath = "render.png"
@@ -12,7 +12,9 @@ c = 299_792_458
 # F_g = GMm/r^2
 # a_g = GM/r^2
 # but light is funky
+# TODO: why is the below wrong
 # theta = 4GM/c^2/r
+# theta from paper = 2GM/c^2/r
 
 try:
     scene  = Image.open(scenePath)
@@ -21,14 +23,56 @@ except IOError:
 
 cameraPt = (48, 75)
 # x pos, y pos, mass
-gravityObjs = [(159, 65, 1.89E+27), (132,  904, 1000)]
+gravityObjs = [(159, 65, 4E+26), (132,  904, 1000)]
+deflectionConstant = 4 * G * gravityObjs[0][2] / c**2
+# TODO dynamically calculate this based on mass
+eventHorizon = 2.8
 sceneSize = scene.size
 
-# ~~find point closest to black hole~~
-# step forward, calc deflection, repeat
-# kill path if within 2.8m of black hole or hit edge
+deflectionValue = [[]]
+for x in range(sceneSize[0]):
+    deflectionValue.append([])
+    for y in range(sceneSize[1]):
+        # not calculating deflection for obj 2 because it is irrelevant
+        # 7E-28 radians of deflection at closest point
+        dist = math.sqrt((x - gravityObjs[0][0])**2 + (y - gravityObjs[0][1])**2)
+        if dist != 0:
+            deflect = deflectionConstant / dist
+        else:
+            deflect = 0
+        deflectionValue[x].append(deflect)
 
-angleResolution = 45
+# ~~find point closest to black hole~~
+# step forward, calc deflection, record scene state at pos, repeat
+# kill path if hit edge, if within schwarzschild radius of black hole, set all remaining scene states on path to black (path has crossed event horizon)
+
+angleResolution = 1800
+sceneStates = [[]]
+for angleStep in range(angleResolution):
+    sceneStates.append([])
+    angle = 2 * math.pi / angleResolution * angleStep
+    pos = [cameraPt[0], cameraPt[1]]
+    # while (path not dead): move one step along angle, calc deflection & update angle, record scene state at current pos
+    pathAlive = 1
+    while pathAlive == 1:
+        angle += deflectionValue[math.floor(pos[0])][math.floor(pos[1])]
+        sceneStates[angleStep].append(scene.getpixel(pos))
+        pos[0] += math.cos(angle)
+        pos[1] += math.sin(angle)
+        if (pos[0] >= sceneSize[0]) | (pos[1] >= sceneSize[1]) | (pos[0] < 0) | (pos[1] < 0):
+            pathAlive = 0
+
+output = Image.new("RGB", sceneSize, (255,255,255))
+draw = ImageDraw.Draw(output)
 for angleStep in range(angleResolution):
     angle = 2 * math.pi / angleResolution * angleStep
-    # while (path not dead): move one step along angle, calc deflection & update angle, record scene state at current pos
+    pos = [cameraPt[0], cameraPt[1]]
+    for data in sceneStates[angleStep]:
+        draw.point((math.floor(pos[0]), math.floor(pos[1])), data)
+        pos[0] += math.cos(angle)
+        pos[1] += math.sin(angle)
+        if (pos[0] >= sceneSize[0]) | (pos[0] < 0) | (pos[1] >= sceneSize[1]) | (pos[1] < 0):
+            break
+output.save("output.png")
+scene.close()
+output.close()
