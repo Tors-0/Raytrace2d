@@ -2,17 +2,17 @@ import math
 from PIL import Image, ImageDraw
 
 # modify these
-scenePath = "scene.png"
+scenePath = "stars.png"
 renderPath = "output.png"
 tracerPath = "tracer.png"
-angleResolution = 1000
+angleResolution = 50000
 # origin is at top left corner, measured in pixels
-cameraPt = (48, 75)
+cameraPt = (92, 90)
 # x pos, y pos, mass
 #pixels, pixels, kilograms
-gravityObjs = [(159, 65, 1.9E+26),]
+gravityObjs = [(500, 500, 1.9E+25),]
 nodataBackgroundColor = (255,255,255)
-tracerScale = 8
+tracerScale = 4
 
 # should we generate the tracer debug image
 DEBUG_TRACER = True
@@ -49,6 +49,7 @@ except IOError:
 deflectionConstant = 2 * G * gravityObjs[0][2] / c**2
 # https://en.wikipedia.org/wiki/Schwarzschild_radius
 eventHorizon = 2 * G * gravityObjs[0][2] / c**2
+print(eventHorizon)
 sceneSize = scene.size
 
 deflectionValue = []
@@ -82,7 +83,7 @@ for (angleStep) in range(angleResolution):
     # kill path if hit edge, if within schwarzschild radius of black hole, set all remaining scene states on path to black (path has crossed event horizon)
     while pathAlive == 1:
         # kill paths that cross the event horizon
-        if math.sqrt((pos[0] - gravityObjs[0][0])**2 + (pos[1] - gravityObjs[0][1])**2) <= max(eventHorizon, 0.51):
+        if math.sqrt((pos[0] - gravityObjs[0][0])**2 + (pos[1] - gravityObjs[0][1])**2) <= eventHorizon:
             pathAlive = 0 # kill path
             sceneStates[angleStep].append((0,0,0)) # put a black pixel on the end of the path
             break
