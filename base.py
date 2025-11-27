@@ -1,17 +1,19 @@
 import math
+import pygame
+import pygame.gfxdraw
 from PIL import Image, ImageDraw
 
 # modify these
 scenePath = "stars.png"
 renderPath = "output.png"
 tracerPath = "tracer.png"
-angleResolution = 50000
+angleResolution = 5000
 # origin is at top left corner, measured in pixels
 cameraPt = (92, 90)
 # x pos, y pos, mass
 #pixels, pixels, kilograms
-gravityObjs = [(500, 500, 1.9E+25),]
-nodataBackgroundColor = (255,255,255)
+gravityObjs = [(500, 500, 1.9E+26),]
+nodataBackgroundColor = (0,0,0)
 tracerScale = 4
 
 # should we generate the tracer debug image
@@ -44,13 +46,19 @@ try:
 except IOError:
     exit(1)
 
-
 # https://arxiv.org/pdf/physics/0508030
 deflectionConstant = 2 * G * gravityObjs[0][2] / c**2
 # https://en.wikipedia.org/wiki/Schwarzschild_radius
 eventHorizon = 2 * G * gravityObjs[0][2] / c**2
 print(eventHorizon)
+eventHorizonColor = (255-nodataBackgroundColor[0],255-nodataBackgroundColor[1],255-nodataBackgroundColor[2])
 sceneSize = scene.size
+
+# pygame setup
+pygame.init()
+screen = pygame.display.set_mode(sceneSize)
+clock = pygame.time.Clock()
+
 
 deflectionValue = []
 for x in range(sceneSize[0]):
@@ -81,11 +89,13 @@ for (angleStep) in range(angleResolution):
 
     # step forward, lookup deflection, record scene state at pos, repeat
     # kill path if hit edge, if within schwarzschild radius of black hole, set all remaining scene states on path to black (path has crossed event horizon)
+    counter: int = 0
+    startAngle: float = angle
     while pathAlive == 1:
         # kill paths that cross the event horizon
         if math.sqrt((pos[0] - gravityObjs[0][0])**2 + (pos[1] - gravityObjs[0][1])**2) <= eventHorizon:
             pathAlive = 0 # kill path
-            sceneStates[angleStep].append((0,0,0)) # put a black pixel on the end of the path
+            sceneStates[angleStep].append(eventHorizonColor) # put a black pixel on the end of the path
             break
 
         trajectory_y = math.tan(angle) * (gravityObjs[0][0] - pos[0]) + pos[1]
@@ -109,6 +119,10 @@ for (angleStep) in range(angleResolution):
             pathAlive = 0
         elif DEBUG_TRACER_PATHS and pathAlive:
             pathDraw.line([oldPos, [pos[0] * tracerScale, pos[1] * tracerScale]], pathColor, 1)
+
+        if (pos[0] < sceneSize[0]) and (pos[0] >= 0) and (pos[1] < sceneSize[1]) and (pos[1] >= 0):
+            screen.set_at((int(counter * math.cos(startAngle)), int(counter * math.sin(startAngle))), pix[(pos[0], pos[1])])
+    pygame.display.update()
 
 output = Image.new("RGB", sceneSize, nodataBackgroundColor)
 draw = ImageDraw.Draw(output)
@@ -136,6 +150,14 @@ output.save(renderPath)
 if DEBUG_TRACER:
     pathTrace.convert("RGB").save(tracerPath)
     pathTrace.close()
+running = True
+while running:
+    # Handling input
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    pygame.display.update()
 
+pygame.quit()
 scene.close()
 output.close()
