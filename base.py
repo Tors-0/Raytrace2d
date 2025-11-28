@@ -9,12 +9,12 @@ scenePath = "scene.png"
 # scene.png, scene2.png camera point 48, 75
 renderPath = "output.png"
 tracerPath = "tracer.png"
-angleResolution = 50000
+angleResolution = 3600
 # origin is at top left corner, measured in pixels
 cameraPt = (48, 75)
 # x pos, y pos, mass
 #pixels, pixels, kilograms
-gravityObjs = [(166, 51, 1.9E+26),]
+gravityObjs = [(165, 51, 1.9E+26),]
 nodataBackgroundColor = (255,255,255)
 tracerScale = 4
 
@@ -59,8 +59,9 @@ sceneSize = scene.size
 # pygame setup
 pygame.init()
 screen = pygame.display.set_mode(sceneSize, pygame.SCALED | pygame.RESIZABLE)
+screen.fill(nodataBackgroundColor)
 clock = pygame.time.Clock()
-
+pygame.display.set_caption('Raytrace2d by Tors-0 :: Black Hole')
 
 deflectionValue = []
 for x in range(sceneSize[0]):
