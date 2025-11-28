@@ -4,16 +4,18 @@ import pygame.gfxdraw
 from PIL import Image, ImageDraw
 
 # modify these
-scenePath = "stars.png"
+scenePath = "scene.png"
+# stars.png camera point 92, 90
+# scene.png, scene2.png camera point 48, 75
 renderPath = "output.png"
 tracerPath = "tracer.png"
-angleResolution = 5000
+angleResolution = 50000
 # origin is at top left corner, measured in pixels
-cameraPt = (92, 90)
+cameraPt = (48, 75)
 # x pos, y pos, mass
 #pixels, pixels, kilograms
-gravityObjs = [(500, 500, 1.9E+26),]
-nodataBackgroundColor = (0,0,0)
+gravityObjs = [(166, 51, 1.9E+26),]
+nodataBackgroundColor = (255,255,255)
 tracerScale = 4
 
 # should we generate the tracer debug image
@@ -56,7 +58,7 @@ sceneSize = scene.size
 
 # pygame setup
 pygame.init()
-screen = pygame.display.set_mode(sceneSize)
+screen = pygame.display.set_mode(sceneSize, pygame.SCALED | pygame.RESIZABLE)
 clock = pygame.time.Clock()
 
 
@@ -77,9 +79,12 @@ if DEBUG_TRACER:
     pathTrace = Image.new("HSV", (sceneSize[0] * tracerScale, sceneSize[1] * tracerScale), (0, 0, 0))
     pathDraw = ImageDraw.Draw(pathTrace)
 
-sceneStates: list[list[tuple[int, int, int]]] = []
+output = Image.new("RGB", sceneSize, nodataBackgroundColor)
+draw = ImageDraw.Draw(output)
+
+# sceneStates: list[list[tuple[int, int, int]]] = []
 for (angleStep) in range(angleResolution):
-    sceneStates.append([])
+    # sceneStates.append([])
     angle = angleStepRads * angleStep
     pos = [cameraPt[0], cameraPt[1]]
     # while (path not dead): move one step along angle, calc deflection & update angle, record scene state at current pos
@@ -95,7 +100,14 @@ for (angleStep) in range(angleResolution):
         # kill paths that cross the event horizon
         if math.sqrt((pos[0] - gravityObjs[0][0])**2 + (pos[1] - gravityObjs[0][1])**2) <= eventHorizon:
             pathAlive = 0 # kill path
-            sceneStates[angleStep].append(eventHorizonColor) # put a black pixel on the end of the path
+            # sceneStates[angleStep].append(eventHorizonColor) # put a black pixel on the end of the path
+
+            if (pos[0] < sceneSize[0]) and (pos[0] >= 0) and (pos[1] < sceneSize[1]) and (pos[1] >= 0):
+                screen.set_at((int(counter * math.cos(startAngle)), int(counter * math.sin(startAngle))), eventHorizonColor)
+                if DEBUG_TRACER_RAYS:
+                    pathDraw.point((math.floor(pos[0] * tracerScale), math.floor(pos[1] * tracerScale)), (0, 0, 255))
+
+                draw.point((math.floor(pos[0]), math.floor(pos[1])), eventHorizonColor)
             break
 
         trajectory_y = math.tan(angle) * (gravityObjs[0][0] - pos[0]) + pos[1]
@@ -108,7 +120,7 @@ for (angleStep) in range(angleResolution):
         else:
             angle -= deflect
 
-        sceneStates[angleStep].append(pix[(pos[0], pos[1])])
+        # sceneStates[angleStep].append(pix[(pos[0], pos[1])])
 
         if DEBUG_TRACER_PATHS:
             oldPos = [pos[0] * tracerScale, pos[1] * tracerScale]
@@ -120,25 +132,17 @@ for (angleStep) in range(angleResolution):
         elif DEBUG_TRACER_PATHS and pathAlive:
             pathDraw.line([oldPos, [pos[0] * tracerScale, pos[1] * tracerScale]], pathColor, 1)
 
+        # draw to output image and rendering window
         if (pos[0] < sceneSize[0]) and (pos[0] >= 0) and (pos[1] < sceneSize[1]) and (pos[1] >= 0):
-            screen.set_at((int(counter * math.cos(startAngle)), int(counter * math.sin(startAngle))), pix[(pos[0], pos[1])])
+            screen.set_at((cameraPt[0] + int(counter * math.cos(startAngle)), cameraPt[1] + int(counter * math.sin(startAngle))), pix[(pos[0], pos[1])])
+            if DEBUG_TRACER_RAYS:
+                pathDraw.point((math.floor(pos[0] * tracerScale), math.floor(pos[1] * tracerScale)), (0, 0, 255))
+
+            if pix[(pos[0], pos[1])] != nodataBackgroundColor:
+                draw.point((cameraPt[0] + int(counter * math.cos(startAngle)), cameraPt[1] + int(counter * math.sin(startAngle))), pix[(pos[0], pos[1])])
+        counter += 1
     pygame.display.update()
 
-output = Image.new("RGB", sceneSize, nodataBackgroundColor)
-draw = ImageDraw.Draw(output)
-for angleStep in range(angleResolution):
-    angle = 2 * math.pi / angleResolution * angleStep
-    pos = [cameraPt[0], cameraPt[1]]
-    for data in sceneStates[angleStep]:
-        if DEBUG_TRACER_RAYS:
-            pathDraw.point((math.floor(pos[0] * tracerScale), math.floor(pos[1] * tracerScale)), (0, 0, 255))
-
-        if data != nodataBackgroundColor:
-            draw.point((math.floor(pos[0]), math.floor(pos[1])), data)
-        pos[0] += math.cos(angle)
-        pos[1] += math.sin(angle)
-        if (pos[0] >= sceneSize[0]) | (pos[0] < 0) | (pos[1] >= sceneSize[1]) | (pos[1] < 0):
-            break
 # draw black circle on black hole
 draw.circle([gravityObjs[0][0], gravityObjs[0][1]], eventHorizon, (0,0,0), (255, 0, 0), 1)
 if DEBUG_TRACER:
