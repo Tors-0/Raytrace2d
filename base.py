@@ -7,9 +7,11 @@ from PIL import Image, ImageDraw
 scenePath = "scene.png"
 # stars.png camera point 92, 90
 # scene.png, scene2.png camera point 48, 75
+# scene.png black hole at 165, 51
+# scene2.png black hole at
 renderPath = "output.png"
 tracerPath = "tracer.png"
-angleResolution = 360000
+angleResolution = 1000000
 # origin is at top left corner, measured in pixels
 cameraPt = (48, 75)
 # x pos, y pos, mass
@@ -86,6 +88,7 @@ output = Image.new("RGB", sceneSize, nodataBackgroundColor)
 draw = ImageDraw.Draw(output)
 
 # sceneStates: list[list[tuple[int, int, int]]] = []
+rays = 0
 for (angleStep) in range(angleResolution):
     # sceneStates.append([])
     angle = angleStepRads * angleStep
@@ -106,7 +109,7 @@ for (angleStep) in range(angleResolution):
             # sceneStates[angleStep].append(eventHorizonColor) # put a black pixel on the end of the path
 
             if (pos[0] < sceneSize[0]) and (pos[0] >= 0) and (pos[1] < sceneSize[1]) and (pos[1] >= 0):
-                screen.set_at((int(counter * math.cos(startAngle)), int(counter * math.sin(startAngle))), eventHorizonColor)
+                screen.set_at((cameraPt[0] + int(counter * math.cos(startAngle)), cameraPt[1] +  int(counter * math.sin(startAngle))), eventHorizonColor)
                 if DEBUG_TRACER_RAYS:
                     pathDraw.point((math.floor(pos[0] * tracerScale), math.floor(pos[1] * tracerScale)), (0, 0, 255))
 
@@ -137,14 +140,16 @@ for (angleStep) in range(angleResolution):
 
         # draw to output image and rendering window
         if (pos[0] < sceneSize[0]) and (pos[0] >= 0) and (pos[1] < sceneSize[1]) and (pos[1] >= 0):
-            screen.set_at((cameraPt[0] + int(counter * math.cos(startAngle)), cameraPt[1] + int(counter * math.sin(startAngle))), pix[(pos[0], pos[1])])
             if DEBUG_TRACER_RAYS:
                 pathDraw.point((math.floor(pos[0] * tracerScale), math.floor(pos[1] * tracerScale)), (0, 0, 255))
 
             if pix[(pos[0], pos[1])] != nodataBackgroundColor:
+                screen.set_at((cameraPt[0] + int(counter * math.cos(startAngle)), cameraPt[1] + int(counter * math.sin(startAngle))), pix[(pos[0], pos[1])])
                 draw.point((cameraPt[0] + int(counter * math.cos(startAngle)), cameraPt[1] + int(counter * math.sin(startAngle))), pix[(pos[0], pos[1])])
         counter += 1
+    rays += 1
     pygame.display.update()
+print('did ' + str(rays) + ' rays')
 
 # draw black circle on black hole
 draw.circle([gravityObjs[0][0], gravityObjs[0][1]], eventHorizon, (0,0,0), (255, 0, 0), 1)
