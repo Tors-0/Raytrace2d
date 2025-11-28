@@ -9,17 +9,17 @@ scenePath = "scene.png"
 # scene.png, scene2.png camera point 48, 75
 renderPath = "output.png"
 tracerPath = "tracer.png"
-angleResolution = 3600
+angleResolution = 360000
 # origin is at top left corner, measured in pixels
 cameraPt = (48, 75)
 # x pos, y pos, mass
 #pixels, pixels, kilograms
 gravityObjs = [(165, 51, 1.9E+26),]
 nodataBackgroundColor = (255,255,255)
-tracerScale = 4
+tracerScale = 2
 
 # should we generate the tracer debug image
-DEBUG_TRACER = True
+DEBUG_TRACER = False
 # should the tracer image contain the path each ray would take without gravitational deflection
 DEBUG_TRACER_RAYS = False
 # should the tracer image contain the path each ray takes
@@ -44,6 +44,7 @@ c = 299_792_458
 
 try:
     scene = Image.open(scenePath)
+    icon = pygame.image.load('./logo.png')
     pix = scene.load()
 except IOError:
     exit(1)
@@ -58,10 +59,11 @@ sceneSize = scene.size
 
 # pygame setup
 pygame.init()
+pygame.display.set_caption('Raytrace2d by Tors-0 :: Black Hole')
+pygame.display.set_icon(icon)
 screen = pygame.display.set_mode(sceneSize, pygame.SCALED | pygame.RESIZABLE)
 screen.fill(nodataBackgroundColor)
 clock = pygame.time.Clock()
-pygame.display.set_caption('Raytrace2d by Tors-0 :: Black Hole')
 
 deflectionValue = []
 for x in range(sceneSize[0]):
